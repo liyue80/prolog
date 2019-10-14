@@ -5,16 +5,14 @@ import (
 	"encoding/binary"
 	"fmt"
 	"net/http"
-	"time"
 )
 
 // SocketWrite ..
-func SocketWrite(serverAddr string, b []byte) (err error) {
+func SocketWrite(serverAddr string, s string) (err error) {
 	client := &http.Client{}
 	url := serverAddr
 	buf := new(bytes.Buffer)
-	binary.Write(buf, binary.LittleEndian, []byte(time.Now().Format("2006-01-02 15:04:05")))
-	binary.Write(buf, binary.LittleEndian, b)
+	binary.Write(buf, binary.LittleEndian, []byte(s))
 
 	request, err := http.NewRequest("POST", url, buf)
 	if err != nil {

@@ -1,171 +1,162 @@
 package prolog
 
 import (
-	"encoding/xml"
 	"fmt"
-	"io/ioutil"
 	"os"
-	"path/filepath"
-	"strconv"
-	"strings"
+	"time"
 )
 
 // Log ..
 var Log Logger
 
+type TraceLevel uint8
+
 const (
-	outNone = iota
-	outConsole
-	outFile
-	outSocket
+	LevelDebug TraceLevel = iota
+	LevelInfo
+	LevelWarning
+	LevelCritical
+	LevelNone = 0x7F
 )
 
 // Logger ..
 type Logger struct {
-	Addr        string
-	FilePath    string
-	DebugOut    []byte
-	InfoOut     []byte
-	WarningOut  []byte
-	CriticalOut []byte
+	Addr      string
+	SockLevel TraceLevel
+
+	FilePath  string
+	FileLevel TraceLevel
+
+	ConsoleLevel TraceLevel
 }
 
 // Debug ...
-func Debug(v ...interface{}) {
-	for _, p := range Log.DebugOut {
-		switch p {
-		case outNone:
-		case outConsole:
-			fmt.Printf("%v\n", v)
-		case outFile:
-			_, err := FileWrite(Log.FilePath, os.O_CREATE|os.O_APPEND|os.O_RDWR, []byte(fmt.Sprintln("[Debug]", v)))
-			if err != nil {
-				fmt.Println("write file failed")
-			}
-		case outSocket:
-			err := SocketWrite(Log.Addr, []byte(fmt.Sprintln("[Debug]", v)))
-			if err != nil {
-				fmt.Println("write socket failed")
-			}
+func Debug(format string, v ...interface{}) {
+	s := formatLogger(LevelDebug, format, v...)
+
+	if Log.Addr != "" && Log.SockLevel <= LevelDebug {
+		err := SocketWrite(Log.Addr, []byte(fmt.Sprintln("[Debug]", v)))
+		if err != nil {
+			fmt.Println("write socket failed")
 		}
+	}
+
+	if Log.FilePath != "" && Log.FileLevel <= LevelDebug {
+		_, err := FileWrite(Log.FilePath, os.O_CREATE|os.O_APPEND|os.O_RDWR, s)
+		if err != nil {
+			fmt.Println("write file failed")
+		}
+	}
+
+	if Log.ConsoleLevel <= LevelDebug {
+		fmt.Println(s)
 	}
 }
 
 // Info ..
-func Info(v ...interface{}) {
-	for _, p := range Log.DebugOut {
-		switch p {
-		case outNone:
-		case outConsole:
-			fmt.Printf("%v\n", v)
-		case outFile:
-			_, err := FileWrite(Log.FilePath, os.O_CREATE|os.O_APPEND|os.O_RDWR, []byte(fmt.Sprintln("[Info]", v)))
-			if err != nil {
-				fmt.Println("write file failed")
-			}
-		case outSocket:
-			err := SocketWrite(Log.Addr, []byte(fmt.Sprintln("[Info]", v)))
-			if err != nil {
-				fmt.Println("write socket failed")
-			}
+func Info(format string, v ...interface{}) {
+	s := formatLogger(LevelInfo, format, v...)
+
+	if Log.Addr != "" && Log.SockLevel <= LevelInfo {
+		err := SocketWrite(Log.Addr, []byte(fmt.Sprintln("[Info]", v)))
+		if err != nil {
+			fmt.Println("write socket failed")
 		}
+	}
+
+	if Log.FilePath != "" && Log.FileLevel <= LevelInfo {
+		_, err := FileWrite(Log.FilePath, os.O_CREATE|os.O_APPEND|os.O_RDWR, s)
+		if err != nil {
+			fmt.Println("write file failed")
+		}
+	}
+
+	if Log.ConsoleLevel <= LevelInfo {
+		fmt.Println(s)
 	}
 }
 
 // Warning ..
-func Warning(v ...interface{}) {
-	for _, p := range Log.DebugOut {
-		switch p {
-		case outNone:
-		case outConsole:
-			fmt.Printf("%v\n", v)
-		case outFile:
-			_, err := FileWrite(Log.FilePath, os.O_CREATE|os.O_APPEND|os.O_RDWR, []byte(fmt.Sprintln("[Warning]", v)))
-			if err != nil {
-				fmt.Println("write file failed")
-			}
-		case outSocket:
-			err := SocketWrite(Log.Addr, []byte(fmt.Sprintln("[Warning]", v)))
-			if err != nil {
-				fmt.Println("write socket failed")
-			}
+func Warning(format string, v ...interface{}) {
+	s := formatLogger(LevelWarning, format, v...)
+
+	if Log.Addr != "" && Log.SockLevel <= LevelWarning {
+		err := SocketWrite(Log.Addr, []byte(fmt.Sprintln("[Warning]", v)))
+		if err != nil {
+			fmt.Println("write socket failed")
 		}
+	}
+
+	if Log.FilePath != "" && Log.FileLevel <= LevelWarning {
+		_, err := FileWrite(Log.FilePath, os.O_CREATE|os.O_APPEND|os.O_RDWR, s)
+		if err != nil {
+			fmt.Println("write file failed")
+		}
+	}
+
+	if Log.ConsoleLevel <= LevelWarning {
+		fmt.Println(s)
 	}
 }
 
 // Critical ..
-func Critical(v ...interface{}) {
-	for _, p := range Log.CriticalOut {
-		switch p {
-		case outNone:
-		case outConsole:
-			fmt.Printf("%v\n", v)
-		case outFile:
-			filename := Log.FilePath
-			_, err := FileWrite(filename, os.O_CREATE|os.O_APPEND|os.O_RDWR, []byte(fmt.Sprintln("[Critical]", v)))
-			if err != nil {
-				fmt.Println("write log failed")
-			}
-		case outSocket:
+func Critical(format string, v ...interface{}) {
+	s := formatLogger(LevelCritical, format, v...)
+
+	if Log.Addr != "" && Log.SockLevel <= LevelCritical {
+
+	}
+
+	if Log.FilePath != "" && Log.FileLevel <= LevelCritical {
+		_, err := FileWrite(Log.FilePath, os.O_CREATE|os.O_APPEND|os.O_RDWR, s)
+		if err != nil {
+			fmt.Println("write log failed")
 		}
 	}
+
+	if Log.ConsoleLevel <= LevelCritical {
+		fmt.Println(s)
+	}
+}
+
+func formatLogger(level TraceLevel, format string, v ...interface{}) string {
+	prefixTime := time.Now().Format("2006-01-02 15:04:05")
+	prefixLevel := ""
+
+	switch level {
+	case LevelDebug:
+		prefixLevel = " [DEBUG] "
+	case LevelInfo:
+		prefixLevel = " [INFOR] "
+	case LevelWarning:
+		prefixLevel = " [WARNI] "
+	case LevelCritical:
+		prefixLevel = " [CRITI] "
+	}
+
+	return prefixTime + prefixLevel + fmt.Sprintf(format, v...)
 }
 
 func init() {
-	if err := readConfig(); err != nil {
-		Log.Addr = "127.0.0.1"
-		Log.FilePath, _ = filepath.Abs(filepath.Dir(os.Args[0]))
-		Log.DebugOut = []byte{outConsole}
-		Log.InfoOut = []byte{outConsole}
-		Log.WarningOut = []byte{outFile, outSocket}
-		Log.CriticalOut = []byte{outConsole, outFile, outSocket}
-	}
+	Log.Addr = ""
+	Log.SockLevel = LevelNone
+
+	Log.FilePath = ""
+	Log.FileLevel = LevelNone
+
+	Log.ConsoleLevel = LevelInfo
 }
 
-func readConfig() error {
-	type LogConfig struct {
-		ServerAddr     string `xml:"server"`
-		FileName       string `xml:"localfilepath"`
-		DebugOutput    string `xml:"debugoutput"`
-		Infooutput     string `xml:"infooutput"`
-		Warningoutput  string `xml:"warningoutput"`
-		Criticaloutput string `xml:"criticaloutput"`
-	}
+func SetLogFileName(fileName string, level TraceLevel) {
+	Log.FilePath = fileName
+	Log.FileLevel = level
+}
 
-	path, err := filepath.Abs(filepath.Dir(os.Args[0]))
-	if err != nil {
-		return err
-	}
-	fileName := path + `\conf\config.xml`
-	config := LogConfig{}
+func SetLogSocket(addr string, level TraceLevel) {
+	Log.Addr = addr
+	Log.SockLevel = level
+}
 
-	var content []byte
-	if content, err = ioutil.ReadFile(fileName); err != nil {
-		return err
-	}
-
-	if err = xml.Unmarshal(content, &config); err != nil {
-		return err
-	}
-
-	Log.Addr = config.ServerAddr
-	Log.FilePath = config.FileName
-	for _, s := range strings.Join(strings.Split(config.DebugOutput, ","), "") {
-		b, _ := strconv.Atoi(string(s))
-		Log.DebugOut = append(Log.DebugOut, uint8(b))
-	}
-	for _, s := range strings.Join(strings.Split(config.Infooutput, ","), "") {
-		b, _ := strconv.Atoi(string(s))
-		Log.InfoOut = append(Log.InfoOut, uint8(b))
-	}
-	for _, s := range strings.Join(strings.Split(config.Warningoutput, ","), "") {
-		b, _ := strconv.Atoi(string(s))
-		Log.WarningOut = append(Log.WarningOut, uint8(b))
-	}
-	for _, s := range strings.Join(strings.Split(config.Criticaloutput, ","), "") {
-		b, _ := strconv.Atoi(string(s))
-		Log.CriticalOut = append(Log.CriticalOut, uint8(b))
-	}
-
-	return nil
+func SetConsoleLevel(level TraceLevel) {
+	Log.ConsoleLevel = level
 }

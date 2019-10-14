@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<configurations>
-    <server>http://127.0.0.1:8080</server>
-    <localfilepath></localfilepath>
-    <debugoutput>1,2,3</debugoutput>
-    <infooutput>1</infooutput>
-    <warningoutput>2,3</warningoutput>
-    <criticaloutput>1,2,3</criticaloutput>
-</configurations>

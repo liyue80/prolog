@@ -9,7 +9,7 @@ import (
 )
 
 // FileWrite ..
-func FileWrite(fileName string, flag int, b []byte) (n int, err error) {
+func FileWrite(fileName string, flag int, s string) (n int, err error) {
 	dir := path.Dir(fileName)
 	os.Mkdir(dir, 0777)
 
@@ -18,14 +18,12 @@ func FileWrite(fileName string, flag int, b []byte) (n int, err error) {
 	if err != nil {
 		return
 	}
+	defer f.Close()
+
 	wr := bufio.NewWriter(f)
-	if _, err = wr.Write([]byte(time.Now().Format("2006-01-02 15:04:05"))); err != nil {
-		return
-	}
-	_, err = wr.Write(b)
-	if err == nil {
+	if _, err = wr.Write([]byte(s)); err == nil {
 		wr.Flush()
 	}
-	f.Close()
+
 	return
 }
