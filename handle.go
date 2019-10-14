@@ -35,7 +35,7 @@ func Debug(format string, v ...interface{}) {
 	s := formatLogger(LevelDebug, format, v...)
 
 	if Log.Addr != "" && Log.SockLevel <= LevelDebug {
-		err := SocketWrite(Log.Addr, []byte(fmt.Sprintln("[Debug]", v)))
+		err := SocketWrite(Log.Addr, s)
 		if err != nil {
 			fmt.Println("write socket failed")
 		}
@@ -58,7 +58,7 @@ func Info(format string, v ...interface{}) {
 	s := formatLogger(LevelInfo, format, v...)
 
 	if Log.Addr != "" && Log.SockLevel <= LevelInfo {
-		err := SocketWrite(Log.Addr, []byte(fmt.Sprintln("[Info]", v)))
+		err := SocketWrite(Log.Addr, s)
 		if err != nil {
 			fmt.Println("write socket failed")
 		}
@@ -81,7 +81,7 @@ func Warning(format string, v ...interface{}) {
 	s := formatLogger(LevelWarning, format, v...)
 
 	if Log.Addr != "" && Log.SockLevel <= LevelWarning {
-		err := SocketWrite(Log.Addr, []byte(fmt.Sprintln("[Warning]", v)))
+		err := SocketWrite(Log.Addr, s)
 		if err != nil {
 			fmt.Println("write socket failed")
 		}
